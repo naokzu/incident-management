@@ -1,0 +1,92 @@
+_schema-version: "3.2"
+ID: mainCategories
+version: 0.0.1
+modules:
+- name: mainCategories-destination-content
+  type: com.sap.application.content
+  requires:
+  - name: mainCategories-destination-service
+    parameters:
+      content-target: true
+  - name: mainCategories_html_repo_host
+    parameters:
+      service-key:
+        name: mainCategories_html_repo_host-key
+  - name: uaa_mainCategories
+    parameters:
+      service-key:
+        name: uaa_mainCategories-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Name: categ_mainCategories_html_repo_host
+          ServiceInstanceName: mainCategories-html5-app-host-service
+          ServiceKeyName: mainCategories_html_repo_host-key
+          sap.cloud.service: categ
+        - Authentication: OAuth2UserTokenExchange
+          Name: categ_uaa_mainCategories
+          ServiceInstanceName: mainCategories-xsuaa-service
+          ServiceKeyName: uaa_mainCategories-key
+          sap.cloud.service: categ
+        existing_destinations_policy: ignore
+  build-parameters:
+    no-source: true
+- name: mainCategories-app-content
+  type: com.sap.application.content
+  path: .
+  requires:
+  - name: mainCategories_html_repo_host
+    parameters:
+      content-target: true
+  build-parameters:
+    build-result: resources
+    requires:
+    - artifacts:
+      - appnamespaceemploye.zip
+      name: appnamespaceemploye
+      target-path: resources/
+- name: appnamespaceemploye
+  type: html5
+  path: employe
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+resources:
+- name: mainCategories-destination-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      init_data:
+        instance:
+          destinations:
+          - Authentication: NoAuthentication
+            Name: ui5
+            ProxyType: Internet
+            Type: HTTP
+            URL: https://ui5.sap.com
+          existing_destinations_policy: update
+      version: 1.0.0
+    service: destination
+    service-name: mainCategories-destination-service
+    service-plan: lite
+- name: mainCategories_html_repo_host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-name: mainCategories-html5-app-host-service
+    service-plan: app-host
+- name: uaa_mainCategories
+  type: org.cloudfoundry.managed-service
+  parameters:
+    path: ./xs-security.json
+    service: xsuaa
+    service-name: mainCategories-xsuaa-service
+    service-plan: application
+parameters:
+  deploy_mode: html5-repo
